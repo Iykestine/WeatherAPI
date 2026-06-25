@@ -49,9 +49,13 @@ namespace WeatherAPI.Services
                 //Send request to Visualcrossing Weather API
                 var response = await _client.GetAsync(url);
 
-                // Check response
+                // Invalid city — Visual Crossing returns 400 for unknown locations
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                    return null;
+
+                // API is down or returned an unexpected error
                 if (!response.IsSuccessStatusCode)
-                    return null; // log or handle error
+                    throw new Exception($"External API returned {response.StatusCode}");
 
                 var json = await response.Content.ReadAsStringAsync();
 
@@ -65,7 +69,6 @@ namespace WeatherAPI.Services
                     Location = root.GetProperty("resolvedAddress").GetString() ?? "",
                     Conditions = day.GetProperty("conditions").GetString() ?? "",
                     Temperature = day.TryGetProperty("temp", out var temp) && temp.ValueKind == JsonValueKind.Number ? temp.GetDouble() : 0,
-                    //Temperature = day.GetProperty("temp").GetDouble(),
                     Humidity = day.GetProperty("humidity").GetDouble(),
                     WindSpeed = day.GetProperty("windspeed").GetDouble(),
                     Date = day.GetProperty("datetime").GetString() ?? "",
@@ -87,12 +90,13 @@ namespace WeatherAPI.Services
             }
             catch (HttpRequestException ex)
             {
-                // network error handling
-                throw new Exception("Error calling external API", ex);
+                // network error handling — API is unreachable
+                throw new Exception("Weather service is currently unavailable. Please try again later.", ex);
             }
             catch (JsonException ex)
             {
-                throw new Exception("Invalid API response", ex);
+                // API returned something unexpected
+                throw new Exception("Unexpected API response from weather service", ex);
             }
         }
     }

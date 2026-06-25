@@ -1,3 +1,4 @@
+using System.Reflection;
 using WeatherAPI.Configurations;
 using WeatherAPI.Services;
 
@@ -17,7 +18,12 @@ builder.Services.AddMemoryCache(); //IMemoryCache
 builder.Services.AddScoped<WeatherService>();
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    options.IncludeXmlComments(xmlPath);
+});
 builder.Services.AddControllers();
 
 var app = builder.Build();
